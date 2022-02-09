@@ -26,6 +26,13 @@ func main() {
 	// create a blog service client
 	c := blogpb.NewBlogServiceClient(cc)
 
+	// create a new blog and return its id
+	blogId := CreateBlog(c)
+	blog := ReadBlog(c, blogId)
+	fmt.Println(blog)
+}
+
+func CreateBlog(c blogpb.BlogServiceClient) string {
 	in := &blogpb.CreateBlogRequest{
 		Blog: &blogpb.Blog{
 			AuthorId: "siddharth",
@@ -37,7 +44,22 @@ func main() {
 	// make a CreateBlog rpc request
 	res, err := c.CreateBlog(context.Background(), in)
 	if err != nil {
-		log.Fatalf("failed to creat blog: %v", err)
+		log.Fatalf("failed to create blog: %v", err)
+		return ""
 	}
 	fmt.Printf("created a blog %v", res.GetBlog())
+	return res.GetBlog().GetId()
+}
+
+func ReadBlog(c blogpb.BlogServiceClient, id string) *blogpb.Blog {
+	in := &blogpb.ReadBlogRequest{
+		BlogId: id,
+	}
+	res, err := c.ReadBlog(context.Background(), in)
+	if err != nil {
+		log.Fatalf("failed to read blog: %v", err)
+		return nil
+	}
+	fmt.Printf("found a blog %v", res.GetBlog())
+	return res.GetBlog()
 }
