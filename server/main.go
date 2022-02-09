@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -25,10 +26,13 @@ func main() {
 	// connect to mongoDB
 	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
-		logger.Printf("error => failed to connect to mongodb: %v", err)
+		logger.Fatalf("error => failed to connect to mongodb: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+	if err := client.Ping(context.Background(), nil); err != nil {
+		logger.Fatalf("error => mongodb ping failed: %v", err)
 	}
 	logger.Println("connected to mongodb...")
-	defer client.Disconnect(context.Background())
 
 	// access the collection
 	blogCollection := client.Database("mydb").Collection("blog")
@@ -52,6 +56,9 @@ func main() {
 	blogServiceServer := blogservice.NewBlogServiceServer(logger, blogCollection)
 	blogpb.RegisterBlogServiceServer(s, blogServiceServer)
 	logger.Println("blog service registered...")
+
+	// enable service reflection
+	reflection.Register(s)
 
 	// server in a goroutine
 	go func() {
